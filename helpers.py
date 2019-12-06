@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import pandas as pd
 import sys
 from scipy.optimize import minimize
+from ellipse import *
 
 def ncr(n, r):
     """
@@ -282,8 +283,9 @@ def OSCOPE(X_noisy, method, br):
     for i in range(break_point):
         for j in range(i + 1, break_point):
             g1, g2 = (X_by_variance[i], X_by_variance[j])
-            est = method(X_noisy[g1], X_noisy[g2])
-            mse_ = mse(est, X_noisy[g1], X_noisy[g2])
+#             est = method(X_noisy[g1], X_noisy[g2])
+#             mse_ = mse(est, X_noisy[g1], X_noisy[g2])
+            mse_, est = fit_ellipse(X_noisy[g1], X_noisy[g2])
             line = pd.DataFrame(data=[[g1, g2, est, mse_]], columns=col)
             df = df.append(line, ignore_index=True)
                 

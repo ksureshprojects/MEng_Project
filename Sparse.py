@@ -95,20 +95,56 @@ def sparse(X, t, tol):
     
     return v, u
 
+def sparse_o(X, t, P, tol):
+    v = np.array([[np.random.rand() for i in range(X.shape[1])]]).T
+    v = v/(np.linalg.norm(v, ord=2) + 0.00000001)
+    # v[0,0] = 1
+    count = 0
+    while count < 100:
+        PXv = np.dot(P,np.dot(X, v))
+        u = PXv / (np.linalg.norm(PXv, ord=2) + 0.00000001)
+        S_XTu = opt_thresh(np.dot(X.T,u), t, tol)
+        v_n = S_XTu / (np.linalg.norm(S_XTu, ord=2) + 0.00000001)
+        v_diff = np.linalg.norm(v - v_n, ord=1)
+        if v_diff < tol:
+            break
+        v = v_n
+        count += 1
+    
+    return v, u
+
 def sparse_rank_n_uv(X, t, tol, r):
     X_ = X.copy()
-    (u_, s, vh_) = np.linalg.svd(X)
     
-    Uh = []
+#     Uh = []
     Vh = []
-    
+    X_r = []
     for i in range(r):
         v, u = sparse(normalise_(X_), t, tol)
-        Uh.append(u.T[0])
+#         Uh.append(u.T[0])
         Vh.append(v.T[0])
-        X_ = X_ - s[i] * np.dot(u, v.T)
+        X_r.append(np.dot(X_, v).T[0])
+        X_ = X_ - np.dot(np.dot(u.T, X_),v) * np.dot(u, v.T)
     
-    return np.array(Vh).T
+    return np.array(Vh).T, np.array(X_r)
+
+def sparse_rank_n_uv_o(X, t, tol, r):
+    X_ = X.copy()
+    
+    U = []
+    Vh = []
+    X_r = []
+    for i in range(r):
+        P = np.eye(X_.shape[0])
+        for j in range(i):
+            P -= np.dot(u,u.T)
+        v, u = sparse_o(normalise_(X_), t, P, tol)
+        U.append(u)
+        Vh.append(v.T[0])
+        X_r.append(np.dot(X_, v).T[0])
+        X_ = X_ - np.dot(np.dot(u.T, X_),v) * np.dot(u, v.T)
+    
+    return np.array(Vh).T, np.array(X_r)
 
 def sparse_rank_n_vv(X, t, tol, r):
     X_ = X.copy()
@@ -116,14 +152,16 @@ def sparse_rank_n_vv(X, t, tol, r):
     
 #     Uh = []
     Vh = []
+    X_r = []
     
     for i in range(r):
         v, u = sparse(normalise_(X_), t, tol)
 #         Uh.append(u.T[0])
         Vh.append(v.T[0])
+        X_r.append(np.dot(X_, v).T[0])
         X_ = X_ - np.dot(X_, np.dot(v, v.T))
     
-    return np.array(Vh).T
+    return np.array(Vh).T, np.array(X_r)
 
 def normalise_(X_):
     X_n = X_.T
