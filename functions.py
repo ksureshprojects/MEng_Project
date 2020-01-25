@@ -333,7 +333,7 @@ def analyse(X, data, top_g1, top_g2, time, spp, save, p1=None, p2=None, plot=Tru
 ########################################################################
 ########################################################################
 
-def OSCOPE(X_, time, break_point=100, med=False, best=True, save=None, spp=24):
+def OSCOPE(X_, time, break_point=100, med=False, best=True, save=None, spp=24, cen=True, an2=None):
     """
     Carry out OSCOPE method to identify
     pair of genes that form best elliptical
@@ -345,18 +345,23 @@ def OSCOPE(X_, time, break_point=100, med=False, best=True, save=None, spp=24):
     time - Corresponding array of real collection
            times.
     """
-    # Center Data
-    X = X_ - np.mean(X_, axis=1, keepdims=True)
+    if cen:
+        # Center Data
+        X = X_ - np.mean(X_, axis=1, keepdims=True)
+    else:
+        X = X_.copy()
     # Number of genes
     l = X.shape[0]
     
     if not med:
         X_by_variance = np.argsort(np.var(X, axis=1))[::-1]
+        X = X_ - np.mean(X_, axis=1, keepdims=True)
     else:
         h = l//2 - 1
         # Sort gene series by median,
         # store indicies
         X_by_median = np.argsort(np.median(X, axis=1))[h:]
+        X = X_ - np.mean(X_, axis=1, keepdims=True)
         # Sort indicies, by variance, 
         # in descending order
         X_by_variance = X_by_median[np.argsort(np.var(X[X_by_median, :], axis=1))[::-1]]
@@ -382,6 +387,18 @@ def OSCOPE(X_, time, break_point=100, med=False, best=True, save=None, spp=24):
 
     top_g1 = df['Gene 1'][0]
     top_g2 = df['Gene 2'][0]
+    
+    if an2:
+        fit_ellipse(X[top_g1], 
+            X[top_g2], 
+            plot=True, 
+            labels=['Best Ellipse - ' + an2,
+                    'Gene {}'.format(top_g1),
+                    'Gene {}'.format(top_g2)], 
+            save=save)
+        analyse(X, X_, top_g1, top_g2, time, spp, save, plot=False)
+        return None
+
     if best:
         # Ensure filename exists
         if save is None:
