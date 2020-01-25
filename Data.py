@@ -62,7 +62,7 @@ class Data:
         else:
             # Option to sample uniformly for testing purposes
             # Samples only generated from one cycle
-            self.t = np.linspace(0, sample_mean / (self.groups[-1] + 0.0000001), self.nc)
+            self.t = np.array([i for i in range(self.nc)])
             np.random.shuffle(self.t)
             
         X = []
@@ -114,59 +114,37 @@ class Data:
                 
         return X_noisy
     
-    def plot_X(self, X, group_ind, groups, n_non):
+    def plot_X(self, X, group_ind, save=None):
         """
         Function that plots gene expression series against time. 
         
         Parameters:
             X - Dataset
-            group_ind - Dictionary with key being oscillatory group number (or -1 for non-osciallatory group) and values
-                        being all row indicies in dataset belonging to group corresponding to key.
-            groups - Array of tuples where each tuple has two values. First value represents oscillatory group, 
-                     second value represents number of genes to plot from this group.
+            group_ind - Array of tuples where each tuple contains X row index and oscillation group.
         """
-        if n_non > len(group_ind[0]):
-            raise ValueError('Number of non-oscilating genes to plot greater than actual number of non-oscilating genes.')
-        
-        plt.figure()
-        for tup in groups:
-            if tup[1] > len(group_ind[tup[0]]):
-                raise ValueError('Number of oscilating genes in specified group is less than desired number of plots.')
-            for i in range(tup[1]):
-                plt.scatter(self.t, X[group_ind[tup[0]][i]], label='Gene {}, Group {}'.format(group_ind[tup[0]][i] + 1, tup[0]))
-            
-        for i in range(n_non):
-            plt.scatter(self.t, X[group_ind[0][i]], label='Gene {}, Group {}'.format(group_ind[0][i] + 1, 0))
+        for i, g in group_ind:
+            plt.scatter(self.t, X[i], label='Gene {}, Group {}'.format(i, g))
 
-        plt.ylabel("Normalised Gene Expression")
+        plt.ylabel("Gene Expression")
         plt.xlabel("Time")
         plt.title("Gene Expressions as a function of Time")
         plt.legend(loc="lower right")
+        if save is not None:
+            plt.savefig(save)
         
-    def plot_ellipse(self, X, group_ind, groups):
+    def plot_ellipse(self, X, group_ind_X, group_ind_Y, save=None):
         """
         Function that plots pairs of gene expression series against one another. 
         
         Parameters:
             X - Dataset
-            group_ind - Dictionary with key being oscillatory group number (or -1 for non-osciallatory group) and values
-                        being all row indicies in dataset belonging to group corresponding to key.
-            groups - Array of tuples where each tuple has two values. First value represents oscillatory group, 
-                     second value represents number of pairs genes to plot from this group.
+            group_ind_X - Array of tuples where each tuple contains X row index and oscillation group.
+            group_ind_Y - Array of tuples where each tuple contains X row index and oscillation group.
         """
-        for tup in groups:
-            count = 0
-            if tup[1] > ncr(len(group_ind[tup[0]]), 2):
-                raise ValueError('Not enough number of oscilating genes for desired number of pairs.')
-            for i in range(len(group_ind[tup[0]])):
-                for j in range(i + 1, len(group_ind[tup[0]])):
-                    plt.figure()
-                    plt.scatter(X[group_ind[tup[0]][i]], X[group_ind[tup[0]][j]])
-                    plt.xlabel('Gene {}, Group {}'.format(group_ind[tup[0]][i] + 1, tup[0]))
-                    plt.ylabel('Gene {}, Group {}'.format(group_ind[tup[0]][j] + 1, tup[0]))
-                    plt.title("Gene {} as a function of Gene {}".format(group_ind[tup[0]][j] + 1, group_ind[tup[0]][i] + 1))
-                    count += 1
-                    if count == tup[1]:
-                        break
-                if count == tup[1]:
-                        break
+        for (i1,g1),(i2,g2) in zip(group_ind_X, group_ind_Y):
+            plt.figure()
+            plt.scatter(X[i1], X[i2])
+            plt.xlabel('Gene {}, Group {}'.format(i1, g1))
+            plt.ylabel('Gene {}, Group {}'.format(i2, g2))
+            plt.title("Gene {} against Gene {}".format(i2, i1))
+            plt.savefig(save + '_{}_{}'.format(i1,i2))
