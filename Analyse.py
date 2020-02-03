@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from SPCA import *
 import numpy as np
 import pandas as pd
+from scipy.sparse import linalg
 
 class Analyse:
     def __init__(self):
@@ -358,7 +359,8 @@ class Analyse:
             if not self.kwargs['cen']:
                 raise ValueError("Data needs to be centred for PCA")
             # image: m x n, U: m x m, s: min(n, m) vector, V: n x n
-            U, s, Vh = np.linalg.svd(self.X.T)
+            # U, s, Vh = np.linalg.svd(self.X.T)
+            U, s, Vh = linalg.svds(self.X.T, k=1)
             # First n_component rows of VT. Rows of VT are principal
             # component directions.
             V1 = Vh[0]
@@ -433,10 +435,12 @@ class Analyse:
 
         if PCA:
             # image: m x n, U: m x m, s: min(n, m) vector, V: n x n
-            U, s, Vh = np.linalg.svd(self.X.T)
+            # U, s, Vh = np.linalg.svd(self.X.T)
+            U, s, Vh = linalg.svds(self.X.T, k=2)
+            arg_s = np.argsort(s)[::-1]
             # First n_component rows of VT. Rows of VT are principal
             # component directions.
-            Vh = Vh[:2, :]
+            Vh = Vh[arg_s, :]
             # Reduced Data
             U2 = (self.X.T).dot(Vh.T).T
         elif SPCA:
