@@ -172,11 +172,13 @@ class Analyse:
                   x[2] * Y_coord**2 + x[3] * X_coord + x[4] * Y_coord
         
         if plot:
+            method = self.kwargs['save'].split("/")[-1]
             # Plot ellipse
             self.axs[0].scatter(X, Y)
             self.axs[0].contour(X_coord, Y_coord, Z_coord, levels=[1], 
                                 colors=('r'), linewidths=2)
-            self.axs[0].set_title('MSE Ellipse Fit: {}'.format(mse))
+            self.axs[0].set_title('MSE Ellipse Fit: {}\n \
+                                   Method: {}'.format(mse, method))
             # Check calling fn
             if comp:
                 x_label = self.labels[self.proc_ind[i1]]
@@ -329,7 +331,8 @@ class Analyse:
                             label="Gene {}".format(x2_label))
         self.axs[2].set_xlabel("Index")
         self.axs[2].set_ylabel("Gene Value")
-        self.axs[2].set_title("Reordered Samples")
+        self.axs[2].set_title("Reordered Samples, \
+                               Reordering Error: {}".format(self.rre))
         self.axs[2].legend()
 
     def OSCOPE(self, X_, time, labels=None, break_point=100, spp=24, 
@@ -414,7 +417,7 @@ class Analyse:
             self.plotGenes(i1, i2)
             # Display figure and error
             # self.fig.show()
-            print('\r Reordering Rank Error: {}'.format(self.rre))
+            # print('\r Reordering Rank Error: {}'.format(self.rre))
             # Savefig
             if self.kwargs['save'] is not None:
                 self.fig.savefig(self.kwargs['save'])
@@ -473,7 +476,7 @@ class Analyse:
             self.plotGenes(i1, i2)
             # Display figure and error
             # self.fig.show()
-            print('\r Reordering Rank Error: {}'.format(self.rre))
+            # print('\r Reordering Rank Error: {}'.format(self.rre))
             # Savefig
             if self.kwargs['save'] is not None:
                 self.fig.savefig(self.kwargs['save'])
