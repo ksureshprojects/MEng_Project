@@ -177,8 +177,8 @@ class Analyse:
             self.axs[0].scatter(X, Y)
             self.axs[0].contour(X_coord, Y_coord, Z_coord, levels=[1], 
                                 colors=('r'), linewidths=2)
-            self.axs[0].set_title('MSE Ellipse Fit: {}\n \
-                                   Method: {}'.format(mse, method))
+            self.axs[0].set_title('MSE Ellipse Fit: {}\n'.format(mse) +
+                                  'Method: {}'.format(method))
             # Check calling fn
             if comp:
                 x_label = self.labels[self.proc_ind[i1]]
@@ -331,8 +331,8 @@ class Analyse:
                             label="Gene {}".format(x2_label))
         self.axs[2].set_xlabel("Index")
         self.axs[2].set_ylabel("Gene Value")
-        self.axs[2].set_title("Reordered Samples, \
-                               Reordering Error: {}".format(self.rre))
+        self.axs[2].set_title("Reordered Samples,\n" +
+                              "Reordering Error: {}".format(self.rre))
         self.axs[2].legend()
 
     def OSCOPE(self, X_, time, labels=None, break_point=100, spp=24, 
