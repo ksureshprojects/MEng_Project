@@ -46,7 +46,7 @@ class Analyse:
             'cen': None
         }
 
-    def setProperties(self, spp, X_, time, labels, kw, plot=True):
+    def setProperties(self, spp, X_, time, labels, kw, name, plot=True):
         """
         Reset and set class properties.
 
@@ -61,6 +61,8 @@ class Analyse:
         self.reset()
         if plot:
             self.fig, self.axs = plt.subplots(1, 3, figsize=[19.2,4])
+            if name is not None:
+                self.fig.suptitle(name)
         self.spp = spp
         self.X_ = X_.copy()
         self.time = time.copy()
@@ -153,7 +155,7 @@ class Analyse:
         b = np.ones_like(X)
         x = np.linalg.lstsq(A, b, rcond=None)[0].squeeze()
         # min(A,C)/max(A,C) - measure of ellipse width
-        r = min(x[0], x[2])/max(x[0], x[2])
+        r = round(min(x[0], x[2])/max(x[0], x[2]), 4)
         # Mean squared error
         mse = (np.linalg.norm(np.dot(A, x) - b, ord=2) ** 2)/(b.shape[0])
         mse = round(mse, 2)
@@ -177,7 +179,8 @@ class Analyse:
             self.axs[0].scatter(X, Y)
             self.axs[0].contour(X_coord, Y_coord, Z_coord, levels=[1], 
                                 colors=('r'), linewidths=2)
-            self.axs[0].set_title('MSE Ellipse Fit: {}\n'.format(mse) +
+            self.axs[0].set_title('MSE: {}, '.format(mse) +
+                                  'Width: {}\n'.format(r) +
                                   'Method: {}'.format(method))
             # Check calling fn
             if comp:
@@ -331,12 +334,13 @@ class Analyse:
                             label="Gene {}".format(x2_label))
         self.axs[2].set_xlabel("Index")
         self.axs[2].set_ylabel("Gene Value")
-        self.axs[2].set_title("Reordered Samples,\n" +
+        self.axs[2].set_title("Reordered Samples, " +
                               "Reordering Error: {}".format(self.rre))
         self.axs[2].legend()
 
     def OSCOPE(self, X_, time, labels=None, break_point=100, spp=24, 
-               PCA=False, SPCA=False, t=20, kw=None, plot=True):
+               PCA=False, SPCA=False, t=20, kw=None, plot=True,
+               name=None):
         """
         Carry out OSCOPE method to identify pair of genes that form best
         elliptical
@@ -352,7 +356,7 @@ class Analyse:
              filtering methods, and gene pre-processing methods.
         """
         # Set class properties
-        self.setProperties(spp, X_, time, labels, kw, plot=plot)
+        self.setProperties(spp, X_, time, labels, kw, name, plot=plot)
         # Filter data
         self.filter()
         # Pre process data
@@ -425,9 +429,10 @@ class Analyse:
         return self.rre, self.mse, self.width
 
     def pComponents(self, X_, time, labels=None, break_point=100, spp=24, 
-                    t=20, SPCA=False, PCA=False, kw=None, plot=True):
+                    t=20, SPCA=False, PCA=False, kw=None, plot=True,
+                    name=None):
         # Set class properties
-        self.setProperties(spp, X_, time, labels, kw, plot=plot)
+        self.setProperties(spp, X_, time, labels, kw, name, plot=plot)
         # Filter data
         self.filter()
         # Pre process data
