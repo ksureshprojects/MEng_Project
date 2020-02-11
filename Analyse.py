@@ -762,6 +762,9 @@ class Analyse:
         resOsc = resOsc[1:, :]
         resPcomp = resPcomp[1:, :]
 
+        np.savetxt(name + "_osc_sp", resOsc)
+        np.savetxt(name + "_pComp_sp", resPcomp)
+
         ax2[0].scatter(resPcomp.T[0], resPcomp.T[1], label='pComp')
         ax2[0].scatter(resOsc.T[0], resOsc.T[1], label='Osc')
         ax2[0].set_xlabel("l1 norm constraint")
