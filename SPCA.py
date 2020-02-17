@@ -1,8 +1,10 @@
 import numpy as np
 
 def soft_thresh(x, l):
-    return np.array(list(map(lambda v: [np.sign(v[0]) * max(abs(v[0]) - l, 
-                                                            0)], x)))
+    # return np.array(list(map(lambda v: [np.sign(v[0]) * max(abs(v[0]) - l, 
+    #                                                         0)], x)))
+    x_ = np.invert((x < l) * (x > - l)) * x
+    return x_ - (x_ > l) * l + (x_ < -l) * l
 
 def opt_thresh(x, t, tol):
     norm = np.linalg.norm(x, ord=1)
