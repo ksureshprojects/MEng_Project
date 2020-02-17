@@ -786,7 +786,7 @@ class Analyse:
         ax2[2].set_ylabel("Ellipse Minor-Major axis ratio")
         ax2[2].legend()
 
-        fig2.savefig(name)
+        fig2.savefig(name + '_sparsity_plots')
         
        
 
