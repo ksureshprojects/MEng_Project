@@ -672,10 +672,6 @@ class Analyse:
         self.proc_ind = np.array([i for i in range(self.X.shape[0])])
         # Find Best Ellipse and Reorder Data
         self.fitEllipse(0, 1, comp=True, plot=plot)
-        # Restore processed data
-        # self.X = temp_data
-        # self.labels = temp_labels
-        # self.proc_ind = temp_ind
         # Pick top genes
         # i1 = np.argmax(np.abs(Vh[0]))
         # Vh[0, i1] = 0
@@ -693,7 +689,10 @@ class Analyse:
             # Savefig
             if self.kwargs['save'] is not None:
                 self.fig.savefig(self.kwargs['save'])
-
+        # Restore processed data
+        self.X = temp_data
+        self.labels = temp_labels
+        self.proc_ind = temp_ind
         # Return err val if ellipse not found
         if self.width == 0:
             return -1, -1, 0
