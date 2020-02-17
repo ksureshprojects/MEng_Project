@@ -122,15 +122,12 @@ class Analyse:
             h = l//2 - 1
             # Sort gene series by median, keep top half
             arg_x = np.argsort(np.median(self.X_, axis=1))[h:]
-        
-
-        if self.kwargs['var'] or self.kwargs['med']:
-            # Store processed data and index map
-            self.X = self.X_[arg_x, :]
-            self.proc_ind = arg_x
         else:
-            self.X = self.X_.copy()
-            self.proc_ind = np.array([i for i in range(self.X.shape[0])])
+            arg_x = np.array([i for i in range(self.X_.shape[0])])
+        
+        self.X = self.X_[arg_x, :]
+        self.labels = self.labels[arg_x]
+        self.proc_ind = np.array([i for i in range(self.X.shape[0])])
 
     def ellipseGeoParam(self, x):
         """
@@ -350,11 +347,11 @@ class Analyse:
                                   'Method: {}'.format(method))
             # Check calling fn
             if comp:
-                x_label = self.labels[self.proc_ind[i1]]
-                y_label = self.labels[self.proc_ind[i2]]
+                x_label = self.labels[i1]
+                y_label = self.labels[i2]
             else:
-                x_label = "Gene {}".format(self.labels[self.proc_ind[i1]])
-                y_label = "Gene {}".format(self.labels[self.proc_ind[i2]])
+                x_label = "Gene {}".format(self.labels[i1])
+                y_label = "Gene {}".format(self.labels[i2])
             self.axs[0].set_xlabel(x_label)
             self.axs[0].set_ylabel(y_label)
         
@@ -466,7 +463,7 @@ class Analyse:
             self.rre = round(mean_n, 3)
             return False
 
-    def plotGenes(self, i1, i2):
+    def plotGenes(self, i1, i2, comp=False):
         """
         Create plots of true order of gene series and reordered gene 
         series.
@@ -480,24 +477,28 @@ class Analyse:
         # Extract number of samples
         t = X1.shape[0]
         # Gene labels
-        x1_label = self.labels[self.proc_ind[i1]]
-        x2_label = self.labels[self.proc_ind[i2]]
+        if comp:
+            x1_label = self.labels[i1]
+            x2_label = self.labels[i2]
+        else:
+            x1_label = "Gene {}".format(self.labels[i1])
+            x2_label = "Gene {}".format(self.labels[i2])
         # True Order
         self.axs[1].scatter([i for i in range(t)], X1[np.argsort(self.time)],
-                            label="Gene {}".format(x1_label))
+                            label=x1_label)
         self.axs[1].scatter([i for i in range(t)], X2[np.argsort(self.time)],
-                            label="Gene {}".format(x2_label))
+                            label=x2_label)
         self.axs[1].set_xlabel("Index")
         self.axs[1].set_ylabel("Gene Value")
         self.axs[1].set_title("True Sample Order")
         self.axs[1].legend()
         # Reordered Samples
-        x1_label = self.labels[self.proc_ind[i1]]
-        x2_label = self.labels[self.proc_ind[i2]]
+        x1_label = self.labels[i1]
+        x2_label = self.labels[i2]
         self.axs[2].scatter([i for i in range(t)], X1[self.reordered],
-                            label="Gene {}".format(x1_label))
+                            label=x1_label)
         self.axs[2].scatter([i for i in range(t)], X2[self.reordered],
-                            label="Gene {}".format(x2_label))
+                            label=x2_label)
         self.axs[2].set_xlabel("Index")
         self.axs[2].set_ylabel("Gene Value")
         self.axs[2].set_title("Reordered Samples, " +
@@ -537,79 +538,78 @@ class Analyse:
                 U, s, Vh = linalg.svds(self.X.T, k=1)
                 # First n_component rows of VT. Rows of VT are principal
                 # component directions.
-                V1 = Vh[0]
-                # Re-filter data by loading vector values
-                arg_x = np.argsort(np.abs(V1))[::-1]
-                # Store processed data and index map
-                self.X = self.X[arg_x, :]
-                self.proc_ind = arg_x
+                # V1 = Vh[0]
+                V = V.T
             elif SPCA:
                 if not self.kwargs['cen']:
                     raise ValueError("Data needs to be centred for SPCA")
-                
                 V, U2 = sparse_rank_n_uv(self.X.T, t=t, 
                                             scl=self.kwargs['scl'],
                                             std=self.kwargs['std'])
-                # First n_component rows of VT. Rows of VT are principal
-                # component directions.
-                V1 = V.T[0]
-                # Re-filter data by loading vector values
-                arg_x = np.argsort(np.abs(V1))[::-1]
-                # Store processed data and index map
-                self.X = self.X[arg_x, :]
-                self.proc_ind = arg_x
         else:
             V = X_
             U2 = time
-            
 
         if dual and (directSPCA or PCA or SPCA):
+            # Array of indicies sorted by first loading 
+            # vector values.
             arg_1 = np.argsort(np.abs(V.T[0]))[::-1]
+            # Keep only non-zero values' indices
+            k = np.argwhere(V.T[0][arg_1] == 0)[0][0]
+            arg_1 = arg_1[:k]
+            # Array of indicies sorted by second loading 
+            # vector values.
             arg_2 = np.argsort(np.abs(V.T[1]))[::-1]
-            # Test every pair of genes for elliptical fit
-            col = ['Gene 1', 'Gene 2', 'Ellipse Width', 'MSE']
-            df = pd.DataFrame(columns=col)
-            count = 0
-            for i in arg_1:
-                if count > 10000:
-                    break
-                if V.T[0, i] == 0:
-                    break
-                for j in arg_2:
-                    if V.T[1, j] == 0:
-                        break
-                    mse_, width = self.fitEllipse(i, j, mse_only=True)
-                    if width > widthTol:
-                        count += 1
-                        line = pd.DataFrame(data=[[i, j, width, mse_]], 
-                                            columns=col)
-                        df = df.append(line, ignore_index=True)
-            # Return if no valid result found
-            if count == 0:
-                return -1, -1, 0
-            # Sort pairs by elliptical fit quality
-            df.sort_values(by=['MSE'], inplace=True, ascending=True)
-            df = df.reset_index(drop=True)
-        else:
-            # Test every pair of genes for elliptical fit
-            col = ['Gene 1', 'Gene 2', 'Ellipse Width', 'MSE']
-            df = pd.DataFrame(columns=col)
-            # Max number of genes
-            l = self.X.shape[0]
-            # Range to explore
-            r = min(break_point,l)
-            for i in range(r):
-                # Show progress
-                print('\r {}/{}'.format(i+1, min(break_point,l)), end='')
-                for j in range(i + 1, r):
-                    mse_, width = self.fitEllipse(i, j, mse_only=True)
-                    if width > widthTol:
-                        line = pd.DataFrame(data=[[i, j, width, mse_]], 
-                                            columns=col)
-                        df = df.append(line, ignore_index=True)
-            # Sort pairs by elliptical fit quality
-            df.sort_values(by=['MSE'], inplace=True, ascending=True)
-            df = df.reset_index(drop=True)
+            # Keep only non-zero values' indices
+            k = np.argwhere(V.T[1][arg_2] == 0)[0][0]
+            arg_2 = arg_2[:k]
+            # Interleave two index arrays
+            min_s = np.minimum(arg_1.size, arg_2.size)
+            arg = np.empty((min_s * 2,), dtype=arg_1.dtype)
+            arg[0::2] = arg_1[:min_s]
+            arg[1::2] = arg_2[:min_s]
+            if arg_1.size < arg_2.size:
+                arg = np.block([arg, arg_2[min_s:]])
+            else:
+                arg = np.block([arg, arg_1[min_s:]])
+            # Keep only unique values
+            arg_in = np.unique(arg, return_index=True)[1]
+            arg = arg[np.sort(arg_in)]
+            # Keep only number of genes equal to 'break_point'
+            self.proc_ind = arg[:break_point]
+        elif (directSPCA or PCA or SPCA):
+            # Array of indicies sorted by first loading 
+            # vector values.
+            arg_1 = np.argsort(np.abs(V.T[0]))[::-1]
+            # Keep only non-zero values' indices
+            k = np.argwhere(V.T[0][arg_1] == 0)[0][0]
+            arg_1 = arg_1[:k]
+            # Keep only number of genes equal to 'break_point'
+            self.proc_ind = arg_1[:break_point]
+
+        # Test every pair of genes for elliptical fit
+        col = ['Gene 1', 'Gene 2', 'Ellipse Width', 'MSE']
+        df = pd.DataFrame(columns=col)
+        # # Max number of genes
+        # l = self.X.shape[0]
+        # # Range to explore
+        # r = min(break_point,l)
+        for i, g1 in enumerate(self.proc_ind):
+            # Show progress
+            print('\r {}/{}'.format(i+1, self.proc_ind.shape[0]), end='')
+            for g2 in self.proc_ind[i+1:]:
+                mse_, width = self.fitEllipse(g1, g2, mse_only=True)
+                if width > widthTol:
+                    line = pd.DataFrame(data=[[g1, g2, width, mse_]], 
+                                        columns=col)
+                    df = df.append(line, ignore_index=True)
+
+        # If no good ellipse ...
+        if df.values.shape[0] == 0:
+            return -1, -1, 0
+        # Sort pairs by elliptical fit quality
+        df.sort_values(by=['MSE'], inplace=True, ascending=True)
+        df = df.reset_index(drop=True)
 
         i1 = df['Gene 1'][0]
         i2 = df['Gene 2'][0]
@@ -673,18 +673,20 @@ class Analyse:
         # Find Best Ellipse and Reorder Data
         self.fitEllipse(0, 1, comp=True, plot=plot)
         # Restore processed data
-        self.X = temp_data
-        self.labels = temp_labels
-        self.proc_ind = temp_ind
+        # self.X = temp_data
+        # self.labels = temp_labels
+        # self.proc_ind = temp_ind
         # Pick top genes
         # i1 = np.argmax(np.abs(Vh[0]))
         # Vh[0, i1] = 0
         # i2 = np.argmax(np.abs(Vh[0]))
-        i1 = np.argmax(np.abs(V.T[0]))
-        i2 = np.argmax(np.abs(V.T[1]))
+        # i1 = np.argmax(np.abs(V.T[0]))
+        # i2 = np.argmax(np.abs(V.T[1]))
+        i1 = 0
+        i2 = 1
         # Plot genes
         if plot:
-            self.plotGenes(i1, i2)
+            self.plotGenes(i1, i2, comp=True)
             # Display figure and error
             # self.fig.show()
             # print('\r Reordering Rank Error: {}'.format(self.rre))
@@ -719,7 +721,7 @@ class Analyse:
         bOsc = (np.inf, 0, 0, 0)
         bPcomp = (np.inf, 0, 0, 0)
         for i,t in enumerate(np.linspace(1,120,120)):
-            print('\r {} {}/120'.format(name, i + 1), end='')
+            print('\r {} {}/120'.format(name, t), end='')
             # Run Sparse PCA
             V, U2 = sparse_rank_n_uv(self.X.T, t=t, scl=self.kwargs['scl'],
                                      std=self.kwargs['std'])
@@ -727,15 +729,17 @@ class Analyse:
             # U2 = np.loadtxt("debug_U")
             # OSCOPE
             err, mse, wid = self.OSCOPE(V, U2, plot=False, 
+                                        widthTol=widthTol, 
+                                        break_point=break_point,
                                         directSPCA=True, dual=True)
             resOsc = np.block([[resOsc], [t, err, mse, wid]])
-            if err < bOsc[0] and err > 0:
+            if err < bOsc[0] and err >= 0:
                 bOsc = (err, i, V.copy(), U2.copy())
             # Principal Components
             err, mse, wid = self.pComponents(V, U2, plot=False, 
                                              directSPCA= True)
             resPcomp = np.block([[resPcomp], [t, err, mse, wid]])
-            if err < bPcomp[0] and err > 0:
+            if err < bPcomp[0] and err >= 0:
                 bPcomp = (err, i, V.copy(), U2.copy())
 
         # Set class properties
