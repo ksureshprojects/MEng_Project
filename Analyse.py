@@ -594,10 +594,10 @@ class Analyse:
         # l = self.X.shape[0]
         # # Range to explore
         # r = min(break_point,l)
-        for i, g1 in enumerate(self.proc_ind):
+        for i, g1 in enumerate(self.proc_ind[:break_point]):
             # Show progress
             print('\r {}/{}'.format(i+1, self.proc_ind.shape[0]), end='')
-            for g2 in self.proc_ind[i+1:]:
+            for g2 in self.proc_ind[i+1:break_point]:
                 mse_, width = self.fitEllipse(g1, g2, mse_only=True)
                 if width > widthTol:
                     line = pd.DataFrame(data=[[g1, g2, width, mse_]], 
