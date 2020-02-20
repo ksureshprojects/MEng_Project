@@ -1,8 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-def barPlot(results, title, save=None):
-    # Sort by rank error
-    arg = np.argsort(results[:,0])
+def barPlot(results, title, save=None, v1=False):
+    if v1:
+        arg_a = np.argwhere(results[:,2].astype('float') < 1).flatten()
+        arg_a = arg_a[np.argwhere(results[arg_a,2].astype('float') > 0).flatten()]
+        arg_s = arg_a[np.argsort(np.abs(results[arg_a,0].astype('float')))]
+        arg_e = np.array([i for i in range(results.shape[0]) if i not in arg_s])
+        arg = np.block([arg_s, arg_e]).astype('int')
+    else:
+        # Sort by rank error
+        arg = np.argsort(np.abs(results[:,0].astype('float')))
     # Store new results
     results_s = results[arg, :]
     # the label locations
@@ -23,6 +30,9 @@ def barPlot(results, title, save=None):
     ax[0].set_ylabel('Rank Error')
     ax[1].set_ylabel('Ellipse MSE')
     ax[2].set_ylabel('Ellipse Width')
+    ax[0].set_ylim([0, 0.3])
+    ax[1].set_ylim([0,10])
+    ax[2].set_ylim([0,1])
     ax[2].set_xlabel('Method')
     ax[2].set_xticks(x)
     ax[2].set_xticklabels(results_s[:,3].flatten(), rotation=90)
