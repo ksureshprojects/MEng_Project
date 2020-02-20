@@ -539,7 +539,7 @@ class Analyse:
                 # First n_component rows of VT. Rows of VT are principal
                 # component directions.
                 # V1 = Vh[0]
-                V = V.T
+                V = Vh.T
             elif SPCA:
                 if not self.kwargs['cen']:
                     raise ValueError("Data needs to be centred for SPCA")
