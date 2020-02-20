@@ -535,7 +535,7 @@ class Analyse:
                     raise ValueError("Data needs to be centred for PCA")
                 # image: m x n, U: m x m, s: min(n, m) vector, V: n x n
                 # U, s, Vh = np.linalg.svd(self.X.T)
-                U, s, Vh = linalg.svds(self.X.T, k=1)
+                U, s, Vh = linalg.svds(self.X.T, k=2)
                 # First n_component rows of VT. Rows of VT are principal
                 # component directions.
                 # V1 = Vh[0]
@@ -554,15 +554,15 @@ class Analyse:
             # Array of indicies sorted by first loading 
             # vector values.
             arg_1 = np.argsort(np.abs(V.T[0]))[::-1]
-            # Keep only non-zero values' indices
-            k = np.argwhere(V.T[0][arg_1] == 0)[0][0]
-            arg_1 = arg_1[:k]
+            # # Keep only non-zero values' indices
+            # k = np.argwhere(V.T[0][arg_1] == 0)[0][0]
+            # arg_1 = arg_1[:k]
             # Array of indicies sorted by second loading 
             # vector values.
             arg_2 = np.argsort(np.abs(V.T[1]))[::-1]
-            # Keep only non-zero values' indices
-            k = np.argwhere(V.T[1][arg_2] == 0)[0][0]
-            arg_2 = arg_2[:k]
+            # # Keep only non-zero values' indices
+            # k = np.argwhere(V.T[1][arg_2] == 0)[0][0]
+            # arg_2 = arg_2[:k]
             # Interleave two index arrays
             min_s = np.minimum(arg_1.size, arg_2.size)
             arg = np.empty((min_s * 2,), dtype=arg_1.dtype)
