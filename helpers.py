@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-def barPlot(results, title, save=None, v1=False):
+def barPlot(results, title, save=None, v1=False, color=False):
     if v1:
         arg_a = np.argwhere(results[:,2].astype('float') < 1).flatten()
         arg_a = arg_a[np.argwhere(results[arg_a,2].astype('float') > 0).flatten()]
@@ -17,13 +17,18 @@ def barPlot(results, title, save=None, v1=False):
     # the width of the bars
     width = 0.65 
 
+    if color:
+        color = results_s[:, 4].flatten()
+    else:
+        color = ['green' for i in x]
+
     fig, ax = plt.subplots(3,1, sharex=True, figsize=[20,4.8])
     rects1 = ax[0].bar(x, results_s[:,0].astype('float').flatten(), 
-                       width, label='Rank Error')
+                       width, label='Rank Error', color=color)
     rects3 = ax[1].bar(x, results_s[:,1].astype('float').flatten(), 
-                       width, label='Ellipse MSE')
+                       width, label='Ellipse MSE', color=color)
     rects2 = ax[2].bar(x, results_s[:,2].astype('float').flatten(), 
-                       width, label='Ellipse Width')
+                       width, label='Ellipse Width', color=color)
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax[0].set_title(title)
