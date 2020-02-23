@@ -749,7 +749,8 @@ class Analyse:
         self.fig, self.axs = plt.subplots(1, 3, figsize=[19.2,4])
         self.fig.suptitle(name)
         self.kwargs['save'] = temp_save + '_SPCA_osc_{}'.format(bOsc[1] + 1)
-        self.OSCOPE(bOsc[2], bOsc[3], plot=True, directSPCA=True, dual=True)
+        self.OSCOPE(bOsc[2], bOsc[3], plot=True, widthTol=widthTol, 
+                    break_point=break_point, directSPCA=True, dual=True)
 
         fig1, ax1 = self.fig, self.axs
 
