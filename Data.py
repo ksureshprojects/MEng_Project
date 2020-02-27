@@ -40,7 +40,8 @@ class Data:
             self.groups = [min(max(0.25, 0.5 + np.random.normal(scale=0.2)), 0.75) for i in range(n_groups - 1)]
             self.groups.insert(0, 0.0) 
     
-    def gen_data(self, t_dist_normal=True, sample_mean=np.pi * 2, st_dev=3):
+    def gen_data(self, t_dist_normal=True, sample_mean=np.pi * 2, 
+                 st_dev=3, tol=0.9):
         """
         Function that assigns self.groups property with an array specifying the frequencies of each group. 
         
@@ -70,7 +71,7 @@ class Data:
         for i in range(self.ng):
             gene = []
             # 90% of genes are non-oscillatory
-            if np.random.random() < 0.9:
+            if np.random.random() < tol:
                 # Store index values of genes of non-oscillatory group
                 if 0 in group_ind:
                     group_ind[0].append(i)
