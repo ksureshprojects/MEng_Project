@@ -581,9 +581,9 @@ class Analyse:
             # Array of indicies sorted by first loading 
             # vector values.
             arg_1 = np.argsort(np.abs(V.T[0]))[::-1]
-            # Keep only non-zero values' indices
-            k = np.argwhere(V.T[0][arg_1] == 0)[0][0]
-            arg_1 = arg_1[:k]
+            # # Keep only non-zero values' indices
+            # k = np.argwhere(V.T[0][arg_1] == 0)[0][0]
+            # arg_1 = arg_1[:k]
             # Keep only number of genes equal to 'break_point'
             self.proc_ind = arg_1[:break_point]
 
