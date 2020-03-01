@@ -700,7 +700,7 @@ class Analyse:
             return self.rre, self.mse, self.width
 
     def tuneSparsity(self, X_, time, labels=None, break_point=100, spp=24, 
-                     kw=None, name=None, widthTol=0.1):
+                     kw=None, name=None, widthTol=0.1, dual=True):
         """
         Test SPCA methods and indentify optimal tuning parameters.
 
@@ -730,7 +730,7 @@ class Analyse:
             err, mse, wid = self.OSCOPE(V, U2, plot=False, 
                                         widthTol=widthTol, 
                                         break_point=break_point,
-                                        directSPCA=True, dual=True)
+                                        directSPCA=True, dual=dual)
             resOsc = np.block([[resOsc], [t, err, mse, wid]])
             if err < bOsc[0] and err >= 0:
                 bOsc = (err, i, V.copy(), U2.copy())
@@ -750,7 +750,7 @@ class Analyse:
         self.fig.suptitle(name)
         self.kwargs['save'] = temp_save + '_SPCA_osc_{}'.format(bOsc[1] + 1)
         self.OSCOPE(bOsc[2], bOsc[3], plot=True, widthTol=widthTol, 
-                    break_point=break_point, directSPCA=True, dual=True)
+                    break_point=break_point, directSPCA=True, dual=dual)
 
         fig1, ax1 = self.fig, self.axs
 
