@@ -13,7 +13,7 @@ class Data:
         """
         self.ng = n_genes
         self.nc = n_cells
-        self.psi = [random.random()*2*np.pi for i in range(self.ng)]
+        self.psi = [random.random()*np.pi for i in range(self.ng)]
         self.groups = None
         self.t = None
         
