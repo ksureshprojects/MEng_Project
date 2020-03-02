@@ -24,8 +24,13 @@ def opt_thresh(x, t, tol):
             l_u = l_mid
     return x_l
 
-def sparse(X, t, tol):
-    v = np.array([[np.random.rand() for i in range(X.shape[1])]]).T
+def sparse(X, t, tol, r=False):
+    # Shuffle times
+    if r:
+        random = np.random.RandomState(seed=0)
+        v = np.array([[random.rand() for i in range(X.shape[1])]]).T
+    else:
+        v = np.array([[np.random.rand() for i in range(X.shape[1])]]).T
     v = v/(np.linalg.norm(v, ord=2) + 0.00000001)
     # v[0,0] = 1
     count = 0
@@ -41,12 +46,12 @@ def sparse(X, t, tol):
         count += 1
     return v, u
 
-def sparse_rank_n_uv(X, t=20, tol=10e-4, r=2, scl=False, std=False):
+def sparse_rank_n_uv(X, t=20, tol=10e-4, r=2, scl=False, std=False, r=False):
     X_ = X.copy()
     Vh = []
     X_r = []
     for i in range(r):
-        v, u = sparse(normalise_(X_, scl=scl, std=std), t, tol)
+        v, u = sparse(normalise_(X_, scl=scl, std=std), t, tol, r=r)
         Vh.append(v.T[0])
         X_r.append(np.dot(X_, v).T[0])
         X_ = X_ - np.dot(np.dot(u.T, X_),v) * np.dot(u, v.T)
