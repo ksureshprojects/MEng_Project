@@ -564,7 +564,7 @@ class Analyse:
 
     def OSCOPE(self, X_, time, labels=None, break_point=100, spp=24, 
                PCA=False, SPCA=False, t=20, kw=None, plot=True,
-               name=None, widthTol=0.1, directSPCA=False, dual=False):
+               name=None, widthTol=0.1, directSPCA=False, dual=False, o=False):
         """
         Carry out OSCOPE method to identify pair of genes that form best
         elliptical
@@ -600,7 +600,13 @@ class Analyse:
             elif SPCA:
                 if not self.kwargs['cen']:
                     raise ValueError("Data needs to be centred for SPCA")
-                V, U2 = sparse_rank_n_uv(self.X.T, t=t, 
+                # Run Sparse PCA
+                if not o:
+                    V, U2 = sparse_rank_n_uv(self.X.T, t=t, 
+                                            scl=self.kwargs['scl'],
+                                            std=self.kwargs['std'])
+                else:
+                    V, U2 = sparse_rank_n_uv_o(self.X.T, t=t, 
                                             scl=self.kwargs['scl'],
                                             std=self.kwargs['std'])
         else:
@@ -687,7 +693,7 @@ class Analyse:
 
     def pComponents(self, X_, time, labels=None, break_point=100, spp=24, 
                     t=20, SPCA=False, PCA=False, kw=None, plot=True,
-                    name=None, directSPCA=False):
+                    name=None, directSPCA=False, o=False):
         if not directSPCA:
             # Set class properties
             self.setProperties(spp, X_, time, labels, kw, name, plot=plot)
@@ -711,9 +717,14 @@ class Analyse:
                 U2 = (self.X.T).dot(Vh.T).T
             elif SPCA:
                 # Run Sparse PCA
-                V, U2 = sparse_rank_n_uv(self.X.T, t=t, 
-                                         scl=self.kwargs['scl'],
-                                         std=self.kwargs['std'])
+                if not o:
+                    V, U2 = sparse_rank_n_uv(self.X.T, t=t, 
+                                            scl=self.kwargs['scl'],
+                                            std=self.kwargs['std'])
+                else:
+                    V, U2 = sparse_rank_n_uv_o(self.X.T, t=t, 
+                                            scl=self.kwargs['scl'],
+                                            std=self.kwargs['std'])
                 Vh = V.T
             else:
                 raise ValueError('PCA or SPCA flag not set')
@@ -757,7 +768,7 @@ class Analyse:
             return self.rre, self.mse, self.width, self.mse_std
 
     def tuneSparsity(self, X_, time, labels=None, break_point=100, spp=24, 
-                     kw=None, name=None, widthTol=0.1, dual=True):
+                     kw=None, name=None, widthTol=0.1, dual=True, o=False):
         """
         Test SPCA methods and indentify optimal tuning parameters.
 
@@ -779,8 +790,15 @@ class Analyse:
         for i,t in enumerate(np.linspace(1,120,120)):
             print('\r {} {}/120'.format(name, t), end='')
             # Run Sparse PCA
-            V, U2 = sparse_rank_n_uv(self.X.T, t=t, scl=self.kwargs['scl'],
-                                     std=self.kwargs['std'])
+            # Run Sparse PCA
+            if not o:
+                V, U2 = sparse_rank_n_uv(self.X.T, t=t, 
+                                        scl=self.kwargs['scl'],
+                                        std=self.kwargs['std'])
+            else:
+                V, U2 = sparse_rank_n_uv_o(self.X.T, t=t, 
+                                        scl=self.kwargs['scl'],
+                                        std=self.kwargs['std'])
             # V = np.loadtxt("debug_V")
             # U2 = np.loadtxt("debug_U")
             # OSCOPE
