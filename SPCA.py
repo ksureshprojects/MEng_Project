@@ -25,7 +25,6 @@ def opt_thresh(x, t, tol):
     return x_l
 
 def sparse(X, t, tol, ran=False):
-    # Shuffle times
     if ran:
         random = np.random.RandomState(seed=0)
         v = np.array([[random.rand() for i in range(X.shape[1])]]).T
@@ -46,12 +45,49 @@ def sparse(X, t, tol, ran=False):
         count += 1
     return v, u
 
+def sparse_o(X, t, P, tol, ran=False):
+    if ran:
+        random = np.random.RandomState(seed=0)
+        v = np.array([[random.rand() for i in range(X.shape[1])]]).T
+    else:
+        v = np.array([[np.random.rand() for i in range(X.shape[1])]]).T
+    v = v/(np.linalg.norm(v, ord=2) + 0.00000001)
+    # v[0,0] = 1
+    count = 0
+    while count < 100:
+        PXv = np.dot(P,np.dot(X, v))
+        u = PXv / (np.linalg.norm(PXv, ord=2) + 0.00000001)
+        S_XTu = opt_thresh(np.dot(X.T,u), t, tol)
+        v_n = S_XTu / (np.linalg.norm(S_XTu, ord=2) + 0.00000001)
+        v_diff = np.linalg.norm(v - v_n, ord=1)
+        if v_diff < tol:
+            break
+        v = v_n
+        count += 1
+    return v, u
+
 def sparse_rank_n_uv(X, t=20, tol=10e-4, r=2, scl=False, std=False, ran=False):
     X_ = X.copy()
     Vh = []
     X_r = []
     for i in range(r):
         v, u = sparse(normalise_(X_, scl=scl, std=std), t, tol, ran=ran)
+        Vh.append(v.T[0])
+        X_r.append(np.dot(X_, v).T[0])
+        X_ = X_ - np.dot(np.dot(u.T, X_),v) * np.dot(u, v.T)
+    return np.array(Vh).T, np.array(X_r)
+
+def sparse_rank_n_uv_o(X, t=20, tol=10e-4, r=2, scl=False, std=False, ran=False):
+    X_ = X.copy()
+    Vh = []
+    U = []
+    X_r = []
+    for i in range(r):
+        P = np.eye(X_.shape[0])
+        for j in range(i):
+            P -= np.dot(U[j],U[j].T)
+        v, u = sparse_o(normalise_(X_, scl=scl, std=std), t, P, tol, ran=ran)
+        U.append(u)
         Vh.append(v.T[0])
         X_r.append(np.dot(X_, v).T[0])
         X_ = X_ - np.dot(np.dot(u.T, X_),v) * np.dot(u, v.T)

@@ -28,6 +28,8 @@ class Analyse:
         self.rre = None
         # Ellipse MSE
         self.mse = None
+        # MSE std during cross validation
+        self.mse_std = None
         # Ellipse Width
         self.width = None
         # Plots
@@ -289,7 +291,31 @@ class Analyse:
 
         return err
 
-    def fitEllipse(self, i1, i2, mse_only=False, comp=False, plot=True):
+    def trainTestSplit(self, S, K):
+        """
+        Method to split data into K folds and return test and training
+        indicies to divide data.
+
+        Parameters:
+        S - Number of samples
+        K - Number of folds
+        Returns:
+        Array with K tuples of the form (train_indicies, test_indicies).
+        """
+        # Samples per fold
+        spf = S // K
+        indicies = [i for i in range(S)]
+        out = []
+        # Split data indicies
+        for i in range(K):
+            test = np.array(indicies[i*spf:(i+1)*spf])
+            train = np.array(indicies[:i*spf] + indicies[(i+1)*spf:])
+            out.append((train, test))
+
+        return out
+
+    def fitEllipse(self, i1, i2, mse_only=False, comp=False, plot=True, 
+                   K=3):
         """
         Method to create elliptical plot, find best elliptical fit, 
         calculate MSE value.
@@ -304,47 +330,86 @@ class Analyse:
         # Extract gene series
         X = self.X[i1].copy()
         Y = self.X[i2].copy()
+        # TO AVOID OVERFITTING
+        if not plot or mse_only:
+            ## split data in K folds
+            splits = self.trainTestSplit(X.shape[0], K)
+            mses = []
+            rvals = []
+            for split in splits:
+                # Divide data using K fold indicies
+                X_train = X[split[0]]
+                Y_train = Y[split[0]]
+                X_test = X[split[1]]
+                Y_test = Y[split[1]]
+                X_train = X_train.reshape((X_train.shape[0], 1))
+                Y_train = Y_train.reshape((Y_train.shape[0], 1))
+                X_test = X_test.reshape((X_test.shape[0], 1))
+                Y_test = Y_test.reshape((Y_test.shape[0], 1))
+                # Transform training data
+                A_train = np.hstack([X_train**2, X_train * Y_train, Y_train**2, 
+                            X_train, Y_train])
+                b_train = np.ones_like(X_train)
+                # Least squares parameters
+                x = np.linalg.lstsq(A_train, b_train, rcond=None)[0].squeeze()
+                # Test parameters on test data
+                b_test = np.ones_like(X_test)
+                r, c_x, c_y = self.ellipseGeoParam(x)
+                A_test = np.hstack([X_test**2, X_test * Y_test, 
+                                    Y_test**2, X_test, Y_test])
+                # Mean squared error on test data
+                mse = (np.linalg.norm(np.dot(A_test, x) - b_test, 
+                                        ord=2) ** 2)/(b_test.shape[0])
+                # If ellipse valid
+                if r > 0:
+                    mses.append(mse)
+                    rvals.append(r)
+            # Returning only MSE and ellipse width
+            if len(mses) > 0:
+                mse_, std_, r_  = (np.mean(np.array(mse)), 
+                                    np.std(np.array(mse)),
+                                    np.mean(np.array(r)))
+            else:
+                mse_, std_, r_ = -1, 0, 0
+
+            if mse_only:
+                return mse_, std_, r_
+            else:
+                # Store results
+                self.mse = round(mse_, 5)
+                self.width = round(r_, 5)
+                self.mse_std = round(std_, 5)
+        
+        # FOR REORDERING
         # Formulate and solve the least squares problem ||Ax - b ||^2
         X = X.reshape((X.shape[0], 1))
         Y = Y.reshape((Y.shape[0], 1))
-        # A = np.hstack([X**2, X * Y, Y**2, X, Y, np.ones(X.shape)])
-        # x = self.directEllipseEst(X, Y)
         A = np.hstack([X**2, X * Y, Y**2, X, Y])
         b = np.ones_like(X)
         x = np.linalg.lstsq(A, b, rcond=None)[0].squeeze()
-        # min(A,C)/max(A,C) - measure of ellipse width
         r, c_x, c_y = self.ellipseGeoParam(x)
-        # Mean squared error
         mse = (np.linalg.norm(np.dot(A, x) - b, ord=2) ** 2)/(b.shape[0])
-        # mse = (np.linalg.norm(np.dot(A, x), ord=2) ** 2)/A.shape[0]
-        # mse = self.directError(A, x)[0,0]
-        # Returning only MSE and ellipse width
-        if mse_only:
-            return mse, r
-        else:
-            # Store results
+        # Plot Ellipse
+        if plot:
+            # Store results - whole ellipse
             self.mse = round(mse, 5)
             self.width = round(r, 5)
-        # Plot the least squares ellipse
-        x_coord = np.linspace(np.min(X) - 0.5, np.max(X) + 0.5, 300)
-        y_coord = np.linspace(np.min(Y) - 0.5, np.max(Y) + 0.5, 300)
-        X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
-        Z_coord = x[0] * X_coord ** 2 + x[1] * X_coord * Y_coord + \
-                  x[2] * Y_coord**2 + x[3] * X_coord + x[4] * Y_coord 
-                #   + \
-                #   x[5]
-        
-        if plot:
+            
+            # Plot the least squares ellipse
+            x_coord = np.linspace(np.min(X) - 0.5, np.max(X) + 0.5, 300)
+            y_coord = np.linspace(np.min(Y) - 0.5, np.max(Y) + 0.5, 300)
+            X_coord, Y_coord = np.meshgrid(x_coord, y_coord)
+            Z_coord = x[0] * X_coord ** 2 + x[1] * X_coord * Y_coord + \
+                    x[2] * Y_coord**2 + x[3] * X_coord + x[4] * Y_coord 
+
             method = self.kwargs['save'].split("/")[-1]
             # Plot ellipse
             self.axs[0].scatter(X, Y)
-            # self.axs[0].contour(X_coord, Y_coord, Z_coord, levels=[0], 
-            #                     colors=('r'), linewidths=2)
             self.axs[0].contour(X_coord, Y_coord, Z_coord, levels=[1], 
-                               colors=('r'), linewidths=2)
+                                colors=('r'), linewidths=2)
             self.axs[0].set_title('MSE: {}, '.format(self.mse) +
-                                  'Width: {}\n'.format(self.width) +
-                                  'Method: {}'.format(method))
+                                    'Width: {}\n'.format(self.width) +
+                                    'Method: {}'.format(method))
             # Check calling fn
             if comp:
                 x_label = self.labels[i1]
@@ -354,13 +419,6 @@ class Analyse:
                 y_label = "Gene {}".format(self.labels[i2])
             self.axs[0].set_xlabel(x_label)
             self.axs[0].set_ylabel(y_label)
-        
-        # # Identify contour where ellipse equation is equal to one
-        # X_coord = X_coord[np.where(np.abs(Z_coord - 1) < 10 ** -3)]
-        # Y_coord = Y_coord[np.where(np.abs(Z_coord - 1) < 10 ** -3)]
-        # # Identify ellipse center
-        # c_x = np.mean(X_coord)
-        # c_y = np.mean(Y_coord)
 
         # Create table with time, angular positions and indicies
         df = pd.DataFrame(columns=['Time', 'Angle', 'Index'])
@@ -393,8 +451,7 @@ class Analyse:
         # Sort table by time
         df = df.sort_values(by='Time')
         # Calculate reordering quality
-        asc = self.rankError(df['Time'].values, 
-                                       df['Angle'].values)
+        asc = self.rankError(df['Time'].values, df['Angle'].values)
         # Return index column after sorting by angle, 
         # quality metric and window size
         self.reordered = df.sort_values(by='Angle', ascending=asc)['Index']
@@ -588,7 +645,7 @@ class Analyse:
             self.proc_ind = arg_1[:break_point]
 
         # Test every pair of genes for elliptical fit
-        col = ['Gene 1', 'Gene 2', 'Ellipse Width', 'MSE']
+        col = ['Gene 1', 'Gene 2', 'Ellipse Width', 'MSE', 'Std']
         df = pd.DataFrame(columns=col)
         # # Max number of genes
         # l = self.X.shape[0]
@@ -598,9 +655,9 @@ class Analyse:
             # Show progress
             print('\r {}/{}'.format(i+1, self.proc_ind.shape[0]), end='')
             for g2 in self.proc_ind[i+1:break_point]:
-                mse_, width = self.fitEllipse(g1, g2, mse_only=True)
+                mse_, std, width = self.fitEllipse(g1, g2, mse_only=True)
                 if width > widthTol:
-                    line = pd.DataFrame(data=[[g1, g2, width, mse_]], 
+                    line = pd.DataFrame(data=[[g1, g2, width, mse_, std]], 
                                         columns=col)
                     df = df.append(line, ignore_index=True)
 
@@ -626,7 +683,7 @@ class Analyse:
             if self.kwargs['save'] is not None:
                 self.fig.savefig(self.kwargs['save'])
         
-        return self.rre, self.mse, self.width
+        return self.rre, self.mse, self.width, self.mse_std
 
     def pComponents(self, X_, time, labels=None, break_point=100, spp=24, 
                     t=20, SPCA=False, PCA=False, kw=None, plot=True,
@@ -695,9 +752,9 @@ class Analyse:
         self.proc_ind = temp_ind
         # Return err val if ellipse not found
         if self.width == 0:
-            return -1, -1, 0
+            return -1, -1, 0, 0
         else:
-            return self.rre, self.mse, self.width
+            return self.rre, self.mse, self.width, self.mse_std
 
     def tuneSparsity(self, X_, time, labels=None, break_point=100, spp=24, 
                      kw=None, name=None, widthTol=0.1, dual=True):
@@ -715,8 +772,8 @@ class Analyse:
         # Pre process data
         self.preProcess()
 
-        resPcomp = np.array([[0,0,0,0]])
-        resOsc = np.array([[0,0,0,0]])
+        resPcomp = np.array([[0,0,0,0,0]])
+        resOsc = np.array([[0,0,0,0,0]])
         bOsc = (np.inf, 0, 0, 0)
         bPcomp = (np.inf, 0, 0, 0)
         for i,t in enumerate(np.linspace(1,120,120)):
@@ -727,17 +784,17 @@ class Analyse:
             # V = np.loadtxt("debug_V")
             # U2 = np.loadtxt("debug_U")
             # OSCOPE
-            err, mse, wid = self.OSCOPE(V, U2, plot=False, 
+            err, mse, wid, std = self.OSCOPE(V, U2, plot=False, 
                                         widthTol=widthTol, 
                                         break_point=break_point,
                                         directSPCA=True, dual=dual)
-            resOsc = np.block([[resOsc], [t, err, mse, wid]])
+            resOsc = np.block([[resOsc], [t, err, mse, wid, std]])
             if err < bOsc[0] and err >= 0:
                 bOsc = (err, i, V.copy(), U2.copy())
             # Principal Components
-            err, mse, wid = self.pComponents(V, U2, plot=False, 
+            err, mse, wid, std = self.pComponents(V, U2, plot=False, 
                                              directSPCA= True)
-            resPcomp = np.block([[resPcomp], [t, err, mse, wid]])
+            resPcomp = np.block([[resPcomp], [t, err, mse, wid, std]])
             if err < bPcomp[0] and err >= 0:
                 bPcomp = (err, i, V.copy(), U2.copy())
 
